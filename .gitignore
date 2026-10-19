@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+brahmo_local_dev.sqlite3
+.env
