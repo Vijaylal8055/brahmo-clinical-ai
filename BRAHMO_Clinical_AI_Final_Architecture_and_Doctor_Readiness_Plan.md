@@ -1,9 +1,9 @@
 # BRAHMO Clinical AI — Final Architecture and Doctor-Readiness Plan
 
 **Candidate:** Vijaylal Bussa  
-**Submission date:** 19 October 2026  
-**Assessment opening time:** 19 October 2026, 16:47 IST (drafting session start recorded)  
-**Submission time:** Record the actual time when sending this file  
+**Submission date:** 20 October 2026  
+**Assessment opening time:** 20 October 2026, 9:05 IST (drafting session start recorded)  
+**Submission time:**   20 October 2026, 11:15 IST
 **Version:** Final candidate submission, v1.0
 
 > **Status statement.** This is a proposed architecture and readiness plan, not a claim that BRAHMO is clinically validated, legally approved, licensed for all referenced content, or ready for unrestricted national deployment. The assessment describes A–C as validated at prototype/subset/pilot scale and D–G as in flight, planned, or open; I treat those labels as supplied context, not independent evidence. Regulatory and licensing conclusions below are a research-based engineering position requiring qualified Indian counsel and relevant clinical reviewers to confirm before affected features are enabled.
