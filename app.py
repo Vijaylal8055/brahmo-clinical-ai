@@ -154,6 +154,20 @@ with st.sidebar:
         )
     if st.button("Test Supabase write"):
         st.json(_diagnose_supabase())
+    if st.button("Test audit logger path"):
+        import brahmo.audit as _audit
+        _eid = write_audit_event("logger_path_test", {"note": "sidebar test"}, event_status="OK")
+        _rec = next((r for r in reversed(_audit._MEMORY_EVENTS) if r["id"] == _eid), {})
+        _client = _audit._get_supabase()
+        st.json(
+            {
+                "event_id": _eid,
+                "audit_module_file": getattr(_audit, "__file__", "?"),
+                "has_new_cache_fix": hasattr(_audit, "_supabase_cache_key"),
+                "audit_client_created": _client is not None,
+                "supabase_error": _rec.get("payload", {}).get("_supabase_error", "none recorded"),
+            }
+        )
     st.caption("Do not store PHI in audit payloads.")
 
 tab_pipeline, tab_meds, tab_ref, tab_states, tab_audit = st.tabs(
