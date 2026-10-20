@@ -20,6 +20,8 @@ from brahmo.audit import (
     write_audit_event,
     recent_audit_events,
     supabase_configured,
+    supabase_diagnose,
+    supabase_last_error,
     register_source_version,
     list_source_versions,
 )
@@ -83,6 +85,11 @@ with st.sidebar:
             "Supabase not configured. Audit uses in-memory / local SQLite only "
             "(not durable on Community Cloud). Add secrets to enable."
         )
+    err = supabase_last_error()
+    if err:
+        st.error(f"Supabase error: {err}")
+    if st.button("Test Supabase write"):
+        st.json(supabase_diagnose())
     st.caption("Do not store PHI in audit payloads.")
 
 tab_pipeline, tab_meds, tab_ref, tab_states, tab_audit = st.tabs(
