@@ -35,6 +35,7 @@ logger = logging.getLogger("brahmo.audit")
 
 _supabase_client = None
 _supabase_init_attempted = False
+_supabase_cache_key: Optional[tuple] = None
 _supabase_init_error: Optional[str] = None
 _last_supabase_error: Optional[str] = None
 
@@ -42,9 +43,7 @@ _last_supabase_error: Optional[str] = None
 def _get_supabase():
     """Lazy-init Supabase client from Streamlit secrets or environment variables."""
     global _supabase_client, _supabase_init_attempted, _supabase_init_error
-    if _supabase_init_attempted:
-        return _supabase_client
-    _supabase_init_attempted = True
+    global _supabase_cache_key
 
     url = None
     key = None
@@ -67,10 +66,17 @@ def _get_supabase():
     if not url or not key:
         _supabase_init_error = "SUPABASE_URL or key missing in secrets/env"
         _supabase_client = None
+        _supabase_cache_key = None
         return None
 
     url = str(url).strip()
     key = str(key).strip()
+
+    # Rebuild the client whenever the URL or key changes (e.g. secrets edited).
+    if _supabase_client is not None and _supabase_cache_key == (url, key):
+        return _supabase_client
+    _supabase_init_attempted = True
+    _supabase_cache_key = (url, key)
 
     try:
         from supabase import create_client
