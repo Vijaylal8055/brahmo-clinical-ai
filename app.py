@@ -83,6 +83,14 @@ def _diagnose_supabase() -> dict:
         rep["insert_ok"] = True
     except Exception as exc:
         rep["insert_error"] = f"{type(exc).__name__}: {exc}"[:600]
+    try:
+        client.table("source_versions").upsert(
+            {"source_name": "diagnostic_ping", "version_label": "0", "status": "DRAFT"},
+            on_conflict="source_name,version_label",
+        ).execute()
+        rep["source_versions_upsert_ok"] = True
+    except Exception as exc:
+        rep["source_versions_error"] = f"{type(exc).__name__}: {exc}"[:600]
     return rep
 
 
@@ -344,7 +352,7 @@ with tab_audit:
 
     events = recent_audit_events(limit=30)
     if events:
-        st.dataframe(events, use_container_width=True, hide_index=True)
+        st.dataframe(events, width="stretch", hide_index=True)
     else:
         st.caption("No audit events yet — run a pipeline first.")
 
@@ -379,10 +387,11 @@ with tab_audit:
                 )
             else:
                 st.error("Registration failed (check service role key and RLS).")
+                st.json(_diagnose_supabase())
 
     versions = list_source_versions(limit=20)
     if versions:
-        st.dataframe(versions, use_container_width=True, hide_index=True)
+        st.dataframe(versions, width="stretch", hide_index=True)
     elif supabase_configured():
         st.caption("No source_versions rows yet.")
 
