@@ -20,12 +20,71 @@ from brahmo.audit import (
     write_audit_event,
     recent_audit_events,
     supabase_configured,
-    supabase_diagnose,
-    supabase_last_error,
     register_source_version,
     list_source_versions,
 )
 from brahmo import __version__
+
+
+def _diagnose_supabase() -> dict:
+    """Self-contained Supabase check (does not depend on brahmo/audit.py changes)."""
+    import base64, json as _json, os
+    rep: dict = {}
+    url = key = None
+    try:
+        url = st.secrets.get("SUPABASE_URL") or st.secrets.get("supabase_url")
+        key = (
+            st.secrets.get("SUPABASE_SERVICE_ROLE_KEY")
+            or st.secrets.get("SUPABASE_KEY")
+            or st.secrets.get("supabase_service_role_key")
+        )
+    except Exception as exc:
+        rep["secrets_error"] = f"{type(exc).__name__}: {exc}"
+    url = url or os.environ.get("SUPABASE_URL")
+    key = key or os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY")
+    rep["url_present"] = bool(url)
+    rep["key_present"] = bool(key)
+    if not url or not key:
+        return rep
+    url, key = str(url).strip(), str(key).strip()
+    rep["url_host"] = url.replace("https://", "").split("/")[0]
+    rep["url_looks_ok"] = url.startswith("https://") and ".supabase.co" in url
+    if key.startswith("sb_secret_"):
+        rep["key_type"] = "new-style secret key (sb_secret_...)"
+    elif key.startswith("sb_publishable_"):
+        rep["key_type"] = "PUBLISHABLE key - WRONG, need secret/service_role"
+    else:
+        try:
+            seg = key.split(".")[1]
+            seg += "=" * (-len(seg) % 4)
+            rep["key_type"] = "legacy JWT, role=" + str(
+                _json.loads(base64.urlsafe_b64decode(seg)).get("role")
+            )
+        except Exception:
+            rep["key_type"] = "unrecognised format"
+    try:
+        import supabase as _sb
+        rep["supabase_py_version"] = getattr(_sb, "__version__", "unknown")
+    except Exception as exc:
+        rep["supabase_import_error"] = f"{type(exc).__name__}: {exc}"
+        return rep
+    try:
+        from supabase import create_client
+        client = create_client(url, key)
+        rep["client_created"] = True
+    except Exception as exc:
+        rep["client_error"] = f"{type(exc).__name__}: {exc}"[:400]
+        return rep
+    try:
+        client.table("audit_events").insert(
+            {"event_type": "diagnostic_ping", "event_status": "OK",
+             "details": {"prototype": True}, "app_version": __version__}
+        ).execute()
+        rep["insert_ok"] = True
+    except Exception as exc:
+        rep["insert_error"] = f"{type(exc).__name__}: {exc}"[:600]
+    return rep
+
 
 st.set_page_config(
     page_title="BRAHMO Clinical AI (Demo)",
@@ -85,11 +144,8 @@ with st.sidebar:
             "Supabase not configured. Audit uses in-memory / local SQLite only "
             "(not durable on Community Cloud). Add secrets to enable."
         )
-    err = supabase_last_error()
-    if err:
-        st.error(f"Supabase error: {err}")
     if st.button("Test Supabase write"):
-        st.json(supabase_diagnose())
+        st.json(_diagnose_supabase())
     st.caption("Do not store PHI in audit payloads.")
 
 tab_pipeline, tab_meds, tab_ref, tab_states, tab_audit = st.tabs(
