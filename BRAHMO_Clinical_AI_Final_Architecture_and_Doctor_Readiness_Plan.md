@@ -2,7 +2,7 @@
 
 **Candidate:** Vijaylal Bussa  
 **Submission date:** 20 October 2026  
-**Assessment opening time:** 20 October 2026, 9:05 IST (drafting session start recorded)  
+**Assessment opening time:** 20 October 2026, 08:30 IST (drafting session start recorded)  
 **Submission time:**   20 October 2026, 11:15 IST
 **Version:** Final candidate submission, v1.0
 
