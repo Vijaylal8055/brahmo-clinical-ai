@@ -94,6 +94,24 @@ def _diagnose_supabase() -> dict:
     return rep
 
 
+
+def _record_confirmation(tenant_id: str, encounter_ref: str) -> None:
+    """Write one audit event when the user ticks the box (not on every rerun)."""
+    if not st.session_state.get("confirm_box"):
+        return
+    res = st.session_state.get("last_result") or {}
+    write_audit_event(
+        "doctor_confirmation_demo",
+        {
+            "tenant_id": tenant_id,
+            "encounter_ref": encounter_ref,
+            "pipeline": res.get("pipeline"),
+            "note": "Session checkbox only; not a production approval record",
+        },
+        event_status="CONFIRMED",
+    )
+
+
 st.set_page_config(
     page_title="BRAHMO Clinical AI (Demo)",
     page_icon="🩺",
@@ -207,6 +225,7 @@ with tab_pipeline:
             pop = None if population == "unspecified" else population
             result = run_reference_pipeline(q, population=pop, tenant_id=tenant_id)
             st.session_state["last_result"] = result
+            st.session_state["confirm_box"] = False
     else:
         default_lines = "Demo Product A\nDemo Product B\nDemo Product C"
         raw = st.text_area(
@@ -220,6 +239,7 @@ with tab_pipeline:
                 lines, tenant_id=tenant_id, encounter_ref=encounter_ref
             )
             st.session_state["last_result"] = result
+            st.session_state["confirm_box"] = False
 
     result = st.session_state.get("last_result")
     if result:
@@ -274,21 +294,13 @@ with tab_pipeline:
                         st.json(c["details"])
             st.info(result.get("notice", ""))
 
-        confirmed = st.checkbox(
+        st.checkbox(
             "Doctor confirms this draft (session only — not a legal signature)",
             key="confirm_box",
+            on_change=_record_confirmation,
+            args=(tenant_id, encounter_ref),
         )
-        if confirmed:
-            write_audit_event(
-                "doctor_confirmation_demo",
-                {
-                    "tenant_id": tenant_id,
-                    "encounter_ref": encounter_ref,
-                    "pipeline": result.get("pipeline"),
-                    "note": "Session checkbox only; not a production approval record",
-                },
-                event_status="CONFIRMED",
-            )
+        if st.session_state.get("confirm_box"):
             st.success("Confirmation recorded in audit.")
 
 with tab_meds:
